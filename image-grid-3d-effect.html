@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game Grid with Voting, Suggestions, and Sharing</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2c3e50;
+            font-family: Arial, sans-serif;
+        }
+        .grid-container {
+            height: 100%;
+            overflow-y: auto;
+            perspective: 1000px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0;
+        }
+        .card-container {
+            aspect-ratio: 3/4;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        .card-container:hover {
+            transform: scale(1.05) translateZ(20px) rotateX(10deg);
+            z-index: 1;
+        }
+        .card {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: filter 0.3s ease;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay.active {
+            display: flex;
+        }
+        .active-card-container {
+            max-width: 80%;
+            max-height: 80%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #34495e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        .active-card {
+            max-width: 100%;
+            max-height: 70vh;
+            margin-bottom: 20px;
+        }
+        .active-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(1.2) contrast(1.1);
+        }
+        .card-actions {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .vote-button, .suggest-button, .share-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .vote-button:hover, .suggest-button:hover, .share-button:hover {
+            background-color: #2980b9;
+        }
+        .vote-count {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin: 0 10px;
+        }
+        .suggestion-form {
+            display: none;
+            margin-top: 20px;
+            width: 100%;
+        }
+        .suggestion-form textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        .suggestion-form button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .suggestion-form button:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="grid" id="cardGrid"></div>
+    </div>
+    <div class="overlay" id="overlay">
+        <div class="active-card-container">
+            <div class="active-card" id="activeCard"></div>
+            <div class="card-actions">
+                <button class="vote-button" data-vote="up">👍</button>
+                <span class="vote-count">0</span>
+                <button class="vote-button" data-vote="down">👎</button>
+                <button class="suggest-button">Suggest</button>
+                <button class="share-button">Share</button>
+            </div>
+            <form class="suggestion-form">
+                <textarea placeholder="Enter your suggestion here..."></textarea>
+                <button type="submit">Submit Suggestion</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const cardGrid = document.getElementById('cardGrid');
+        const overlay = document.getElementById('overlay');
+        const activeCard = document.getElementById('activeCard');
+        const voteCount = document.querySelector('.vote-count');
+        const suggestionForm = document.querySelector('.suggestion-form');
+        let cardIndex = 0;
+
+        function createCard() {
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const img = document.createElement('img');
+            img.src = `/api/placeholder/300/400?text=Card${++cardIndex}`;
+            img.alt = `Card ${cardIndex}`;
+            
+            card.appendChild(img);
+            cardContainer.appendChild(card);
+            cardGrid.appendChild(cardContainer);
+
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                activeCard.innerHTML = '';
+                activeCard.appendChild(img.cloneNode(true));
+                voteCount.textContent = '0';
+                overlay.classList.add('active');
+            });
+        }
+
+        function fillGrid() {
+            const gridContainer = document.querySelector('.grid-container');
+            const gridRect = cardGrid.getBoundingClientRect();
+            const cardsPerRow = Math.floor(gridRect.width / 200);
+            const visibleRows = Math.ceil(gridContainer.clientHeight / (200 * (4/3))) + 1;
+            const totalCards = cardsPerRow * visibleRows;
+
+            while (cardGrid.children.length < totalCards) {
+                createCard();
+            }
+        }
+
+        function handleScroll() {
+            const gridContainer = document.querySelector('.grid-container');
+            if (gridContainer.scrollTop + gridContainer.clientHeight >= cardGrid.clientHeight - 200) {
+                fillGrid();
+            }
+        }
+
+        function handleResize() {
+            fillGrid();
+        }
+
+        fillGrid();
+        window.addEventListener('resize', handleResize);
+        document.querySelector('.grid-container').addEventListener('scroll', handleScroll);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+                suggestionForm.style.display = 'none';
+            }
+        });
+
+        document.querySelectorAll('.vote-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const voteType = e.target.dataset.vote;
+                let currentVotes = parseInt(voteCount.textContent);
+                if (voteType === 'up') {
+                    currentVotes++;
+                } else if (voteType === 'down') {
+                    currentVotes--;
+                }
+                voteCount.textContent = currentVotes;
+            });
+        });
+
+        document.querySelector('.suggest-button').addEventListener('click', () => {
+            suggestionForm.style.display = suggestionForm.style.display === 'none' ? 'block' : 'none';
+        });
+
+        suggestionForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const suggestion = suggestionForm.querySelector('textarea').value;
+            console.log('Suggestion submitted:', suggestion);
+            alert('Thank you for your suggestion!');
+            suggestionForm.reset();
+            suggestionForm.style.display = 'none';
+        });
+
+        document.querySelector('.share-button').addEventListener('click', () => {
+            const cardTitle = activeCard.querySelector('img').alt;
+            const shareText = `Check out this awesome card: ${cardTitle}`;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Share Card',
+                    text: shareText,
+                    url: window.location.href,
+                })
+                .then(() => console.log('Successful share'))
+                .catch((error) => console.log('Error sharing:', error));
+            } else {
+                alert('Sharing is not supported on this device. Share text: ' + shareText);
+            }
+        });
+    </script>
+</body>
+</html>

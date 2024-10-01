@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game Grid with Custom Image URLs</title>
+    <style>
+        /* ... (previous styles remain the same) ... */
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: filter 0.3s ease;
+        }
+        .image-url-form {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(52, 73, 94, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1001;
+        }
+        .image-url-form input {
+            width: 300px;
+            padding: 5px;
+            margin-right: 5px;
+        }
+        .image-url-form button {
+            padding: 5px 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <form class="image-url-form" id="imageUrlForm">
+        <input type="url" id="imageUrl" placeholder="Enter image URL" required>
+        <button type="submit">Add Image</button>
+    </form>
+    <div class="grid-container">
+        <div class="grid" id="cardGrid"></div>
+    </div>
+    <!-- ... (overlay and other elements remain the same) ... -->
+
+    <script>
+        const cardGrid = document.getElementById('cardGrid');
+        const overlay = document.getElementById('overlay');
+        const activeCard = document.getElementById('activeCard');
+        const voteCount = document.querySelector('.vote-count');
+        const suggestionForm = document.querySelector('.suggestion-form');
+        const imageUrlForm = document.getElementById('imageUrlForm');
+        let cardIndex = 0;
+        
+        // Array to store image URLs
+        const imageUrls = [
+            'https://example.com/image1.jpg',
+            'https://example.com/image2.jpg',
+            'https://example.com/image3.jpg',
+            // Add more default image URLs as needed
+        ];
+
+        function createCard(imageUrl) {
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = `Card ${++cardIndex}`;
+            
+            card.appendChild(img);
+            cardContainer.appendChild(card);
+            cardGrid.appendChild(cardContainer);
+
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                activeCard.innerHTML = '';
+                activeCard.appendChild(img.cloneNode(true));
+                voteCount.textContent = '0';
+                overlay.classList.add('active');
+            });
+        }
+
+        function fillGrid() {
+            const gridContainer = document.querySelector('.grid-container');
+            const gridRect = cardGrid.getBoundingClientRect();
+            const cardsPerRow = Math.floor(gridRect.width / 200);
+            const visibleRows = Math.ceil(gridContainer.clientHeight / (200 * (4/3))) + 1;
+            const totalCards = cardsPerRow * visibleRows;
+
+            while (cardGrid.children.length < totalCards && imageUrls.length > 0) {
+                createCard(imageUrls.shift());
+            }
+        }
+
+        function handleScroll() {
+            const gridContainer = document.querySelector('.grid-container');
+            if (gridContainer.scrollTop + gridContainer.clientHeight >= cardGrid.clientHeight - 200) {
+                fillGrid();
+            }
+        }
+
+        function handleResize() {
+            fillGrid();
+        }
+
+        imageUrlForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const imageUrl = document.getElementById('imageUrl').value;
+            if (imageUrl) {
+                imageUrls.push(imageUrl);
+                createCard(imageUrl);
+                document.getElementById('imageUrl').value = '';
+            }
+        });
+
+        fillGrid();
+        window.addEventListener('resize', handleResize);
+        document.querySelector('.grid-container').addEventListener('scroll', handleScroll);
+
+        // ... (previous event listeners and other functions remain the same) ...
+    </script>
+</body>
+</html>

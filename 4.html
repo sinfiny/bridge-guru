@@ -85,6 +85,12 @@
     </div>
 
     <script>
+        const cardImages = [
+        'https://cdn.midjourney.com/db0867eb-83a2-496e-b8b2-8d0a16a81c73/0_3.png',
+        'https://cdn.midjourney.com/d685f366-7ef2-4393-a293-bae9c1cd9910/0_0.png'
+        'https://cdn.midjourney.com/d9080534-18c1-48ec-8643-2e600caef9a1/0_3.png'
+        // Add more URLs here
+        ];
         const cardGrid = document.getElementById('cardGrid');
         const overlay = document.getElementById('overlay');
         const activeCard = document.getElementById('activeCard');
@@ -98,7 +104,7 @@
             card.className = 'card';
             
             const img = document.createElement('img');
-            img.src = `/api/placeholder/300/400?text=Card${++cardIndex}`;
+            img.src = imageUrl; 
             img.alt = `Card ${cardIndex}`;
             
             card.appendChild(img);

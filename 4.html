@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game Grid with Improved Pop-out Effect</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2c3e50;
+            font-family: Arial, sans-serif;
+        }
+        .grid-container {
+            height: 100%;
+            overflow-y: auto;
+            perspective: 1000px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0;
+        }
+        .card-container {
+            aspect-ratio: 3/4;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        .card-container:hover {
+            transform: scale(1.05) translateZ(20px) rotateX(10deg);
+            z-index: 1;
+        }
+        .card {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: filter 0.3s ease;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay.active {
+            display: flex;
+        }
+        .active-card {
+            max-width: 80%;
+            max-height: 80%;
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .active-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: brightness(1.2) contrast(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="grid" id="cardGrid"></div>
+    </div>
+    <div class="overlay" id="overlay">
+        <div class="active-card" id="activeCard"></div>
+    </div>
+
+    <script>
+        const cardGrid = document.getElementById('cardGrid');
+        const overlay = document.getElementById('overlay');
+        const activeCard = document.getElementById('activeCard');
+        let cardIndex = 0;
+
+        function createCard() {
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'card-container';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            const img = document.createElement('img');
+            img.src = `/api/placeholder/300/400?text=Card${++cardIndex}`;
+            img.alt = `Card ${cardIndex}`;
+            
+            card.appendChild(img);
+            cardContainer.appendChild(card);
+            cardGrid.appendChild(cardContainer);
+
+            card.addEventListener('click', (e) => {
+                e.stopPropagation();
+                activeCard.innerHTML = '';
+                activeCard.appendChild(img.cloneNode(true));
+                overlay.classList.add('active');
+            });
+        }
+
+        function fillGrid() {
+            const gridContainer = document.querySelector('.grid-container');
+            const gridRect = cardGrid.getBoundingClientRect();
+            const cardsPerRow = Math.floor(gridRect.width / 200);
+            const visibleRows = Math.ceil(gridContainer.clientHeight / (200 * (4/3))) + 1;
+            const totalCards = cardsPerRow * visibleRows;
+
+            while (cardGrid.children.length < totalCards) {
+                createCard();
+            }
+        }
+
+        function handleScroll() {
+            const gridContainer = document.querySelector('.grid-container');
+            if (gridContainer.scrollTop + gridContainer.clientHeight >= cardGrid.clientHeight - 200) {
+                fillGrid();
+            }
+        }
+
+        function handleResize() {
+            fillGrid();
+        }
+
+        fillGrid();
+        window.addEventListener('resize', handleResize);
+        document.querySelector('.grid-container').addEventListener('scroll', handleScroll);
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
